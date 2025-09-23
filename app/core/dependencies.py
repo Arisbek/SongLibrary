@@ -8,7 +8,7 @@ def create_dependencies(settings: Settings = None):
         from app.core.config import Settings
         settings = Settings()
 
-    repo = SongRepository(mongo_uri=settings.mongo_uri, db_name="songlib")
+    repo = SongRepository(mongo_uri=settings.mongo_uri, db_name=settings.mongo_db_name)
     genius = GeniusClient()
 
     song_service = SongService(repository=repo, lyrics_provider=genius)

@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from ..services.song_service import SongService
-from ..models.song import SongCreate, SongRead
+from ..models.song import SongCreate, SongRead, SongUpdate, SongSearch
 from typing import List, Optional
 
 router = APIRouter()
 
-# Dependency injection
 def get_song_service() -> SongService:
     from app.core.dependencies import create_dependencies
     return create_dependencies()["song_service"]
@@ -13,7 +12,7 @@ def get_song_service() -> SongService:
 @router.post("/", response_model=SongRead, tags=["Songs"], summary="Add a new song")
 async def add_song(song: SongCreate, service: SongService = Depends(get_song_service)):
     """Add a new song by title and artist. Enriches song with release date, lyrics, and link from Genius API."""
-    return await service.add_song(song)
+    return await service.add_song(dict(song))
 
 @router.get("/{song_id}", response_model=SongRead, tags=["Songs"], summary="Get a song by ID")
 async def get_song(song_id: str, service: SongService = Depends(get_song_service)):
@@ -23,16 +22,29 @@ async def get_song(song_id: str, service: SongService = Depends(get_song_service
         raise HTTPException(status_code=404, detail="Song not found")
     return song
 
-@router.get(
-    "/",
-    response_model=List[SongRead],
-    tags=["Songs"],
-    summary="Search songs",
-)
+@router.delete("/{song_id}", tags=["Songs"], summary="Delete a song by ID")
+async def delete_song(song_id: str, service: SongService = Depends(get_song_service)):
+    """Delete a song by its ID."""
+    deleted = await service.delete_song(song_id)
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="Song not found")
+    return deleted
+
+@router.patch("/{song_id}", tags=["Songs"], summary="Update a song partially by ID")
+async def patch_song(song_id: str, data: SongUpdate = Body(...), service: SongService = Depends(get_song_service)):
+    """Update a song partially."""
+    updated = await service.update_song(song_id, data.dict(exclude_unset=True))
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Song not found")
+    return updated
+
+@router.post("/search", response_model=List[SongRead], tags=["Songs"], summary="Search songs by keywords or release date")
 async def search_songs(
-    title: Optional[str] = None,
-    artist: Optional[str] = None,
-    service: SongService = Depends(get_song_service),
+    search: SongSearch = Body(...),
+    service: "SongService" = Depends(get_song_service)
 ):
-    """Search songs by title and/or artist."""
-    return await service.search_songs(title=title, artist=artist)
+    """
+    Search for songs by keywords, release date, or link.
+    """
+    results = await service.search_songs(search.dict(exclude_unset=True))
+    return results
