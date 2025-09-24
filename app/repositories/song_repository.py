@@ -1,6 +1,9 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import List, Optional
 from bson import ObjectId
+from datetime import datetime
+from fastapi import HTTPException
+from ..core import handlers
 
 class SongRepository:
     def __init__(self, mongo_uri: str, db_name: str):
@@ -10,7 +13,6 @@ class SongRepository:
 
     async def add_song(self, song_data: dict) -> str:
         result = await self.collection.insert_one(song_data)
-        print(result)
         return str(result.inserted_id)
 
     async def get_song(self, song_id: str) -> Optional[dict]:
@@ -19,8 +21,9 @@ class SongRepository:
         except Exception:
             return None
 
-        song = dict(await self.collection.find_one({"_id": obj_id}))
+        song = await self.collection.find_one({"_id": obj_id})
         if song:
+            song = dict(song)
             song["id"] = str(song["_id"])
         return song
 
@@ -38,7 +41,8 @@ class SongRepository:
         )
 
         if song:
-            song["_id"] = str(song["_id"])
+            song = dict(song)
+            song["id"] = str(song["_id"])
         return song
 
     async def delete_song(self, song_id: str):
@@ -49,15 +53,20 @@ class SongRepository:
 
         song = await self.collection.find_one_and_delete({"_id": obj_id})
         if song:
-            song["_id"] = str(song["_id"])
+            song = dict(song)
+            song["id"] = str(song["_id"])
         return song
 
     async def search_songs(self, search: dict) -> List[dict]:
         query = {}
 
-        # Filter by release date
-        if search.get("release_date", False):
-            query["release_date"] = search["release_date"]
+        # Filter by release_date range
+        if search.get("release_date_from") or search.get("release_date_to"):
+            query["release_date"] = {}
+            if search.get("release_date_from"):
+                query["release_date"]["$gte"] = datetime.combine(search["release_date_from"], datetime.min.time())
+            if search.get("release_date_to"):
+                query["release_date"]["$lte"] = datetime.combine(search["release_date_to"], datetime.max.time())
 
         # Filter by link
         if search.get("link", False):

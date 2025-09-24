@@ -17,7 +17,8 @@ class SongRead(SongBase):
     link: Optional[str] = Field(None, description="Link to the song in external API")
 
 class SongSearch(BaseModel):
-    release_date: Optional[date] = None
+    release_date_from: Optional[date] = None
+    release_date_to: Optional[date] = None
     keywords: Optional[List[str]] = None
     link: Optional[str] = None
     class Config:
