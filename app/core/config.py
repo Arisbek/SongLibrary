@@ -13,6 +13,7 @@ class Settings:
         self.mongo_db_name: str = os.getenv("MONGO_DB_NAME")
         self.genius_api_url: str = os.getenv("GENIUS_API_URL")
         self.genius_token: str = os.getenv("GENIUS_TOKEN")
+        self.lrclib_url: str = os.getenv("LRCLIB_URL")
 
     @property
     def fastapi_kwargs(self):
@@ -21,6 +22,7 @@ class Settings:
             "mongo_db_name":self.mongo_db_name,
             "genius_api_url":self.genius_api_url,
             "genius_token":self.genius_token,
+            "lrclib_url": self.lrclib_url,
         }
 
 

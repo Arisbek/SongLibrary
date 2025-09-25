@@ -42,18 +42,39 @@ http://localhost:8000
 
 **📖 Usage**
 
-Example request:
+Example requests:
 
-GET /songs/{song_id}
+<center>Request</center>
 
+![img.png](img.png)
 
-Example response:
+<center>Response</center>
 
-{
-  "id": "650c2f3e8e8d123456789012",
-  "title": "Imagine",
-  "artist": "John Lennon"
-}
+![img_1.png](img_1.png)
+
+<center>Request</center>
+
+![img_2.png](img_2.png)
+
+<center>Response</center>
+
+![img_3.png](img_3.png)
+
+<center>Request</center>
+
+![img_5.png](img_5.png)
+
+<center>Response</center>
+
+![img_6.png](img_6.png)
+
+<center>Request</center>
+
+![img_4.png](img_4.png)
+
+<center>Response</center>
+
+![img_7.png](img_7.png)
 
 **📝Documentation**
 

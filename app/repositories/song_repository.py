@@ -4,12 +4,21 @@ from bson import ObjectId
 from datetime import datetime
 from fastapi import HTTPException
 from ..core import handlers
+from pymongo import ASCENDING
 
 class SongRepository:
     def __init__(self, mongo_uri: str, db_name: str):
         self.client = AsyncIOMotorClient(mongo_uri)
         self.db = self.client[db_name]
         self.collection = self.db["songs"]
+
+    async def search_song(self, song_data: dict) -> Optional[dict]:
+        title = song_data.get("title", "")
+        artist = song_data.get("artist", "")
+        existing = await self.collection.find_one({"title": title, "artist": artist})
+        if existing:
+            return dict(existing)
+        return None
 
     async def add_song(self, song_data: dict) -> str:
         result = await self.collection.insert_one(song_data)
@@ -31,7 +40,7 @@ class SongRepository:
         try:
             obj_id = ObjectId(song_id)
         except Exception:
-            return None
+            return False
 
         # return_document=True gives the updated document
         song = await self.collection.find_one_and_update(
@@ -41,21 +50,19 @@ class SongRepository:
         )
 
         if song:
-            song = dict(song)
-            song["id"] = str(song["_id"])
-        return song
+            return True
+        return False
 
     async def delete_song(self, song_id: str):
         try:
             obj_id = ObjectId(song_id)
         except Exception:
-            return None
+            return False
 
         song = await self.collection.find_one_and_delete({"_id": obj_id})
         if song:
-            song = dict(song)
-            song["id"] = str(song["_id"])
-        return song
+            return True
+        return False
 
     async def search_songs(self, search: dict) -> List[dict]:
         query = {}
@@ -64,9 +71,9 @@ class SongRepository:
         if search.get("release_date_from") or search.get("release_date_to"):
             query["release_date"] = {}
             if search.get("release_date_from"):
-                query["release_date"]["$gte"] = datetime.combine(search["release_date_from"], datetime.min.time())
+                query["release_date"]["$gte"] = search["release_date_from"].isoformat()  # 'YYYY-MM-DD'
             if search.get("release_date_to"):
-                query["release_date"]["$lte"] = datetime.combine(search["release_date_to"], datetime.max.time())
+                query["release_date"]["$lte"] = search["release_date_to"].isoformat()
 
         # Filter by link
         if search.get("link", False):
@@ -82,7 +89,6 @@ class SongRepository:
         # If using text search, sort by relevance
         if "$text" in query:
             cursor = cursor.sort([("score", {"$meta": "textScore"})])
-            # cursor = cursor.project({"score": {"$meta": "textScore"}})  # include score in results
 
         songs = await cursor.to_list(length=100)  # limit to first 100 results
         for song in songs:
